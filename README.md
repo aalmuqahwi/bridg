@@ -1,0 +1,262 @@
+# Bridg
+
+> ⚠️ This is an experiment. A concept being explored in public. Rough edges exist. Fight the ideas, not the author. 😄
+
+A new primitive for Claude Code. Not a Skill. A transformation driver.
+
+---
+
+## The Story
+
+I was learning Modular Monolith, Clean Architecture, and DDD. I built my SharedKernel — all the abstract code, the base classes, the patterns. Then I looked at my old CRUD project and thought: *someone has to move all of this.*
+
+I knew Claude Code was powerful with Skills. And I thought — what if I could write something like a Skill, but instead of teaching Claude how to behave, it taught Claude how to **transform** my old code into the new architecture?
+
+Not a guide. Not a prompt. A precise adapter between two worlds.
+
+I called it a Bridg.
+
+---
+
+## What is a Bridg?
+
+**Skills** teach Claude how to behave.  
+**Bridgs** teach Claude how to transform code from one architectural world to another.
+
+A Bridg is a folder you drop in `~/.claude/bridgs/`. You trigger it yourself:
+
+```
+"Bridg this."
+```
+
+Claude reads the Bridg, transforms your code, and flags exactly what needs your decision.
+
+---
+
+## Proof
+
+Three cold tests on functions the Bridg had never seen.
+
+**Test 1**
+```javascript
+// Before
+function divide(a, b) {
+  if (b === 0) throw new Error("Cannot divide by zero");
+  return a / b;
+}
+
+// After
+function divide(a, b) {
+  if (b === 0) return Result.fail("Cannot divide by zero");
+  return Result.ok(a / b);
+}
+```
+
+**Test 2 — different function, never seen before** ✅
+```javascript
+// Before
+function getUserAge(birthYear) {
+  const age = new Date().getFullYear() - birthYear;
+  if (age < 0) {
+    throw new Error("Birth year cannot be in the future");
+  }
+  return age;
+}
+
+// After — Bridg applied result-pattern correctly
+function getUserAge(birthYear) {
+  const age = new Date().getFullYear() - birthYear;
+  if (age < 0) {
+    return Result.fail("Birth year cannot be in the future");
+  }
+  return Result.ok(age);
+}
+```
+
+**Test 3 — multiple throws, real complexity** ✅
+```javascript
+// Before
+function processOrder(order) {
+  if (!order) throw new Error("Order is required");
+  if (order.items.length === 0) throw new Error("Order has no items");
+  const total = order.items.reduce((sum, item) => sum + item.price, 0);
+  if (total <= 0) throw new Error("Order total must be positive");
+  return total;
+}
+
+// After — every throw mapped, intermediate logic preserved
+function processOrder(order) {
+  if (!order) return Result.fail("Order is required");
+  if (order.items.length === 0) return Result.fail("Order has no items");
+  const total = order.items.reduce((sum, item) => sum + item.price, 0);
+  if (total <= 0) return Result.fail("Order total must be positive");
+  return Result.ok(total);
+}
+```
+
+Then a full CRUD `UserService` → Modular Monolith. One instruction:
+
+```
+"Bridg UserService.js"
+```
+
+Output — five files generated correctly:
+- `CreateUserUseCase.js` — business logic only, Repository injected
+- `UserRepository.js` — all db calls isolated
+- `User.js` — extends shared `Entity`
+- `GetUserByIdUseCase.js`, `UpdateUserUseCase.js`, `DeleteUserUseCase.js`
+
+Cross-module dependency flagged in the Remainder — not resolved silently:
+
+```
+Remainder:
+- Cross-module dependency in CreateOrderUseCase — you decide the coupling strategy
+- total <= 0 guard — business rule, not a type check. You own this.
+- order.status state machine — consider moving to the Order entity
+- Repository wiring — Bridg creates the interface only
+```
+
+---
+
+## Format
+
+A Bridg is a folder:
+
+```
+~/.claude/bridgs/
+  /{bridg-name}/
+    bridg.md        ← the heart — what Claude reads
+    examples/       ← before/after code samples
+    README.md       ← setup instructions
+```
+
+`bridg.md` uses YAML frontmatter:
+
+```markdown
+---
+name: result-pattern
+description: Transforms functions that throw into functions that return a Result object
+version: 1.0.0
+requires: ~
+triggers:
+  phrases:
+    - "bridg this"
+    - "convert throws to result"
+  detects:
+    - functions that throw exceptions
+    - functions that return raw values without wrapping
+---
+
+## Source
+## Target
+## Map
+## Rules
+## Gotchas
+## Remainder
+```
+
+---
+
+## Composition
+
+Bridgs compose via `requires:`. `validation-pattern` depends on `result-pattern`:
+
+```yaml
+requires: result-pattern
+```
+
+Claude reads the dependency, runs `result-pattern` first, builds on top. Additive. Nothing dropped.
+
+---
+
+## Why Not Just a Skill?
+
+|  | Skill | Bridg |
+|--|-------|-------|
+| Purpose | Shape behavior | Transform code |
+| Direction | Ambient | Source → Target |
+| Composition | No | Via `requires:` |
+| Compounds over time | No | Yes |
+| Remainder | No | Explicit handoff |
+
+---
+
+## Available Bridgs
+
+| Bridg | Transforms | Requires |
+|-------|-----------|----------|
+| `result-pattern` | Raw throws → Result object | ~ |
+| `validation-pattern` | No validation → typed guards | result-pattern |
+| `crud-to-modular-monolith` | Flat CRUD → Use Cases + Repository + Entity | result-pattern |
+
+---
+
+## Setup
+
+**1. Create the Bridgs folder if it doesn't exist:**
+```
+~/.claude/bridgs/
+```
+
+**2. Copy a Bridg folder into it manually.**
+
+For example, copy `result-pattern/` from this repo into:
+```
+~/.claude/bridgs/result-pattern/
+```
+
+Your folder should look like this when done:
+```
+~/.claude/bridgs/
+  /result-pattern/
+    bridg.md
+    examples/
+    README.md
+```
+
+**3. Add the bootstrapper to your project's `CLAUDE.md`:**
+
+> ⚠️ This is a temporary workaround. The vision is Bridg as a native Claude Code primitive — like Skills — so no bootstrapper is needed. Until then:
+
+```markdown
+## Bridgs
+Bridgs are transformation drivers located in ~/.claude/bridgs/
+When the user says "bridg this" or any trigger phrase:
+1. Read ~/.claude/bridgs/*/bridg.md frontmatter
+2. Match trigger phrase or detect code patterns
+3. Load matching Bridg and execute transformation
+
+Rules:
+- Only apply what the Bridg explicitly defines
+- Do NOT add code not covered by the Bridg
+- Flag anything beyond the Bridg scope in Remainder — do not execute it
+- If multiple Bridgs match the same trigger phrase:
+  1. Check requires: fields to determine order
+  2. Execute in dependency order — required Bridg runs first
+  3. Only ask the user if order still cannot be determined
+- When executing multiple Bridgs in sequence:
+  1. Apply first Bridg to the original code
+  2. Apply next Bridg to the output of the previous — never the original
+  3. Each Bridg is additive — never discard transformations from a previous Bridg
+```
+
+**4. Say:** `"Bridg this."`
+
+> Was the setup easy or painful? Open an issue and let me know. That feedback shapes whether this becomes a native primitive.
+
+---
+
+## Write Your Own
+
+The best Bridg is one you've already done manually.
+
+If you've migrated something by hand and wished you could bottle it — that's your Bridg.
+
+1. Create `~/.claude/bridgs/{your-bridg-name}/bridg.md`
+2. Fill in: Source, Target, Map, Rules, Gotchas, Remainder
+3. Test it cold on a function it's never seen
+4. Share it
+
+---
+
+*Built in one conversation. Proven on real migrations. v0.1*
