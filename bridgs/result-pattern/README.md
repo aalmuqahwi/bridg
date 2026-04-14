@@ -15,11 +15,17 @@ See `examples/source.js` → `examples/target.js`
 
 ## Install
 
-```bash
-git clone https://github.com/your-repo/bridg ~/.claude/bridgs/result-pattern
+**1. Create the Bridgs folder if it doesn't exist:**
+```
+~/.claude/bridgs/
 ```
 
-Add the bootstrapper to your `CLAUDE.md` (see root README), then:
+**2. Copy this folder into it:**
+```
+~/.claude/bridgs/result-pattern/
+```
+
+**3. Add the bootstrapper to your `CLAUDE.md`** (see root README for the snippet), then:
 
 ```
 "Bridg this."

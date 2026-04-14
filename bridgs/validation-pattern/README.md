@@ -13,10 +13,18 @@ Adds input validation to functions before execution. Depends on `result-pattern`
 
 This Bridg requires `result-pattern`. Install both:
 
-```bash
-git clone https://github.com/your-repo/bridg ~/.claude/bridgs/result-pattern
-git clone https://github.com/your-repo/bridg ~/.claude/bridgs/validation-pattern
+**1. Create the Bridgs folder if it doesn't exist:**
 ```
+~/.claude/bridgs/
+```
+
+**2. Copy both folders into it:**
+```
+~/.claude/bridgs/result-pattern/
+~/.claude/bridgs/validation-pattern/
+```
+
+**3. Add the bootstrapper to your `CLAUDE.md`** (see root README for the snippet).
 
 Claude runs `result-pattern` first, then builds `validation-pattern` on top.
 
