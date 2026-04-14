@@ -36,6 +36,20 @@ See `examples/new-project/shared/` for reference implementations.
 
 See `examples/old-project/` → `examples/new-project/`
 
+## Install
+
+**1. Create the Bridgs folder if it doesn't exist:**
+```
+~/.claude/bridgs/
+```
+
+**2. Copy this folder into it:**
+```
+~/.claude/bridgs/crud-to-modular-monolith/
+```
+
+**3. Add the bootstrapper to your `CLAUDE.md`** (see root README for the snippet).
+
 ## Workspace setup
 
 ```
