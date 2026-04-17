@@ -32,7 +32,6 @@ Functions that:
 
 ## Rules
 - Validation runs before any logic
-- Each invalid input returns Result.fail() with a clear message
 - Do not change the function logic — only add validation at the top
 - Result handling is delegated to result-pattern — do not redefine it here.
 
