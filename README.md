@@ -25,9 +25,10 @@ I called it a Bridg.
 
 A Bridg is a folder you drop in `~/.claude/bridgs/`. You trigger it yourself:
 
-```
-"Bridg this."
-```
+Three ways to trigger:
+- `bridg this` — auto. Claude detects and lists matching Bridgs.
+- `bridg {name}` — named. Runs on current open file.
+- `bridg {name} {file}` — named + scoped. Most explicit.
 
 Claude reads the Bridg, transforms your code, and flags exactly what needs your decision.
 
@@ -137,14 +138,19 @@ A Bridg is a folder:
 name: result-pattern
 description: Transforms functions that throw into functions that return a Result object
 version: 1.0.0
-requires: ~
+requires:
+  - bridg: result-pattern
+    version: ">=1.0.0"
 triggers:
-  phrases:
-    - "bridg this"
-    - "convert throws to result"
   detects:
     - functions that throw exceptions
     - functions that return raw values without wrapping
+stack:
+  nuget:
+    - logging: Serilog.AspNetCore >= 8.0.0
+    - mediator: MediatR >= 12.0.0
+  npm:
+    - validation: zod >= 3.0.0
 ---
 
 ## Source
@@ -155,17 +161,79 @@ triggers:
 ## Remainder
 ```
 
+**Fields:**
+- `name` — unique identifier. used in requires and trigger commands.
+- `description` — what it transforms. one sentence.
+- `version` — semver.
+- `requires` — optional. omit if no dependencies. versioned. Claude enforces before running.
+- `triggers.phrases` — what the user says to trigger detection.
+- `triggers.detects` — code patterns Claude scans for in auto mode.
+- `stack` — optional. package manager as key. intent: Package.Name >= version. Claude uses these when generating — no substitutions.
+
+**Sections:**
+- `Source` — what the old world looks like
+- `Target` — what the new world looks like
+- `Map` — explicit pattern-to-pattern translation table
+- `Rules` — author's opinions on how to execute. not a standard.
+- `Gotchas` — what trips people up. written from experience.
+- `Remainder` — explicit handoff. what the Bridg intentionally does not do.
+
+---
+
+## Triggering
+
+Three modes:
+
+**`bridg this`**  
+Auto mode. Claude scans `~/.claude/bridgs/`, matches against `triggers.detects`, and lists what it finds.
+- One match → confirms before running
+- Multiple matches → lists them, user picks
+- No match → lists all available Bridgs
+
+**`bridg {name}`**  
+Named mode. Skips detection. Runs on current open file. Confirms before running.
+
+**`bridg {name} {file}`**  
+Named + scoped. Skips detection. Targets specific file. Confirms before running.
+
+Rule: Claude always confirms before running. Always shows output destination. Never silent.
+
 ---
 
 ## Composition
 
-Bridgs compose via `requires:`. `validation-pattern` depends on `result-pattern`:
+Bridgs compose via `requires`. Declare dependencies with version constraints:
 
 ```yaml
-requires: result-pattern
+requires:
+  - bridg: result-pattern
+    version: ">=1.0.0"
 ```
 
-Claude reads the dependency, runs `result-pattern` first, builds on top. Additive. Nothing dropped.
+Rules:
+- `requires` is optional. Omit entirely if no dependencies.
+- Claude verifies all dependencies exist and version constraints are met before running.
+- Missing dependency or version mismatch → stops and tells you exactly what to install.
+- Execution is additive — each Bridg builds on the output of the previous. Never on the original.
+
+## Stack
+
+Optional. Declare preferred packages per package manager.
+
+```yaml
+stack:
+  nuget:
+    - logging: Serilog.AspNetCore >= 8.0.0
+    - mediator: MediatR >= 12.0.0
+    - validation: FluentValidation.AspNetCore >= 11.0.0
+  npm:
+    - validation: zod >= 3.0.0
+```
+
+The key is the package manager: `nuget`, `npm`, `maven`, `pip`, `cargo`.  
+Mixed stacks are supported — .NET backend + npm frontend works naturally.  
+Claude uses declared packages when generating code. No substitutions.  
+Stack is the author's preference, not a standard.
 
 ---
 
@@ -185,9 +253,9 @@ Claude reads the dependency, runs `result-pattern` first, builds on top. Additiv
 
 | Bridg | Transforms | Requires |
 |-------|-----------|----------|
-| `result-pattern` | Raw throws → Result object | ~ |
-| `validation-pattern` | No validation → typed guards | result-pattern |
-| `crud-to-modular-monolith` | Flat CRUD → Use Cases + Repository + Entity | result-pattern |
+| `result-pattern` | Raw throws → Result object | — |
+| `validation-pattern` | No validation → typed guards | result-pattern >= 1.0.0 |
+| `crud-to-modular-monolith` | Flat CRUD → Use Cases + Repository + Entity | result-pattern >= 1.0.0 |
 
 ---
 
@@ -240,7 +308,22 @@ Rules:
   3. Each Bridg is additive — never discard transformations from a previous Bridg
 ```
 
-**4. Say:** `"Bridg this."`
+**4. Trigger a Bridg:**
+
+Auto — let Claude detect:
+```
+bridg this
+```
+
+Named — you know what you want:
+```
+bridg result-pattern
+```
+
+Named + scoped — target a specific file:
+```
+bridg crud-to-modular-monolith UserService.cs
+```
 
 > Was the setup easy or painful? Open an issue and let me know. That feedback shapes whether this becomes a native primitive.
 
@@ -257,6 +340,8 @@ If you've migrated something by hand and wished you could bottle it — that's y
 3. Test it cold on a function it's never seen
 4. Share it
 
+The format is the standard. The rules are your opinion.
+
 ---
 
-*Built in one conversation. Proven on real migrations. v0.1*
+*A vision for what Claude Code could natively become. v0.2*

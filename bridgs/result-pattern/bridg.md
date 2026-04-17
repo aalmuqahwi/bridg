@@ -2,13 +2,7 @@
 name: result-pattern
 description: Transforms functions that throw into functions that return a Result object
 version: 1.0.0
-requires: ~
 triggers:
-  phrases:
-    - "bridg this"
-    - "convert throws to result"
-    - "wrap this in result"
-    - "apply result pattern"
   detects:
     - functions that throw exceptions
     - functions that return raw values without wrapping

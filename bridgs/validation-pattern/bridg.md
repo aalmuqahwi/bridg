@@ -2,12 +2,10 @@
 name: validation-pattern
 description: Adds input validation to functions before execution
 version: 1.0.0
-requires: result-pattern
+requires:
+  - bridg: result-pattern
+    version: ">=1.0.0"
 triggers:
-  phrases:
-    - "bridg this"
-    - "add validation"
-    - "validate inputs"
   detects:
     - functions that assume valid input
     - functions with no input validation
@@ -36,7 +34,7 @@ Functions that:
 - Validation runs before any logic
 - Each invalid input returns Result.fail() with a clear message
 - Do not change the function logic — only add validation at the top
-- Requires result-pattern — Result.fail() is the validation return type
+- Result handling is delegated to result-pattern — do not redefine it here.
 
 ## Gotchas
 - Do not over-validate — only check what can actually break the function
