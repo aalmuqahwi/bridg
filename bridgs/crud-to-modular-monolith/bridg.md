@@ -2,12 +2,15 @@
 name: crud-to-modular-monolith
 description: Migrates a flat CRUD service into a Modular Monolith with Use Cases, Entities, and Repositories
 version: 1.0.0
-requires: result-pattern
+requires:
+  - bridg: result-pattern
+    version: ">=1.0.0"
+stack:
+  nuget:
+    - logging: Serilog.AspNetCore >= 8.0.0
+    - mediator: MediatR >= 12.0.0
+    - validation: FluentValidation.AspNetCore >= 11.0.0
 triggers:
-  phrases:
-    - "bridg this"
-    - "bridg this module"
-    - "migrate this to modular monolith"
   detects:
     - flat service files with mixed business logic and database calls
     - functions that call db directly
@@ -28,18 +31,6 @@ A module folder containing:
 - `{Name}.js` — Entity class extending shared Entity
 - All operations return Result — never throw
 
-## Map
-| Source Pattern                        | Target Pattern                              |
-|---------------------------------------|---------------------------------------------|
-| `function createUser()`               | `CreateUserUseCase.js` with `execute()`     |
-| `function getUserById()`              | `GetUserByIdUseCase.js` with `execute()`    |
-| `db.insert()`                         | `UserRepository.save()`                     |
-| `db.findById()`                       | `UserRepository.findById()`                 |
-| `db.update()`                         | `UserRepository.update()`                   |
-| `db.delete()`                         | `UserRepository.delete()`                   |
-| Raw object `{ id, name, email }`      | `User extends Entity`                       |
-| `throw new Error(msg)`                | `return Result.fail(msg)`                   |
-| `return rawValue`                     | `return Result.ok(value)`                   |
 
 ## Structure
 Each migrated module goes into:
@@ -57,12 +48,16 @@ Shared files already exist in `/shared/`:
 - `Entity.js` — do not recreate
 
 ## Rules
-- One UseCase per operation — never combine multiple operations in one file
-- UseCases receive the Repository as a constructor argument — never import db directly
-- Entities extend Entity from `/shared/Entity.js`
-- All throws become Result.fail()
-- All raw returns become Result.ok()
+- Scan the entire service before generating anything
+- Identify the primary noun — that becomes the module name
+- Classify each function by intent: Command (writes) or Query (reads)
+- Name UseCases from intent, not from original function name
+- If intent is ambiguous, add to Remainder — do not guess
+- One UseCase per operation, regardless of original structure
+- Any direct db call moves to Repository — no exceptions
 - Do not change business logic — only restructure
+- Run per module, not per project — one noun at a time
+- If stack block exists, use declared packages — do not substitute
 
 ## Gotchas
 - Cross-module dependencies (e.g. OrderService checks if User exists) — flag in Remainder, do not resolve automatically
@@ -74,3 +69,5 @@ Hand off to developer:
 - Cross-module calls that require inter-module communication
 - Any business rules that belong in the Entity vs the UseCase
 - Database implementation inside Repository — Bridg creates the interface only
+- Functions with unclear domain intent — confirm UseCase name with 
+  developer before generating.
