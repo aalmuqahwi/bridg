@@ -52,7 +52,6 @@ Shared files already exist in `/shared/`:
 - Identify the primary noun — that becomes the module name
 - Classify each function by intent: Command (writes) or Query (reads)
 - Name UseCases from intent, not from original function name
-- If intent is ambiguous, add to Remainder — do not guess
 - One UseCase per operation, regardless of original structure
 - Any direct db call moves to Repository — no exceptions
 - Do not change business logic — only restructure
@@ -69,5 +68,5 @@ Hand off to developer:
 - Cross-module calls that require inter-module communication
 - Any business rules that belong in the Entity vs the UseCase
 - Database implementation inside Repository — Bridg creates the interface only
-- Functions with unclear domain intent — confirm UseCase name with 
-  developer before generating.
+- Functions with unclear domain intent — flag, do not guess
+- Functions that do both read and write — flag, do not split automatically
